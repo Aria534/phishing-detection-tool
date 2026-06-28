@@ -111,7 +111,7 @@ function verdictColor(string $verdict): string
         </table>
         </div>
         <p style="margin-top:15px;">
-            <a href="index.php" style="color:#1b3a57;text-decoration:underline;font-size:14px;">↻ Check Again</a>
+            <a href="index.php" style="color:#1b3a57;font-size:14px;text-decoration:none;">↻ Check Again</a>
         </p>
     <?php endif; ?>
 </body>
