@@ -9,7 +9,7 @@
 
 require_once __DIR__ . '/PhishingDetector.php';
 
-$samplesDir = __DIR__ . '/../sample-sites';
+$samplesDir = __DIR__;
 $originalFile = $samplesDir . '/original_wiki.html';
 $cloneFile    = $samplesDir . '/cloned_wiki.html';
 
@@ -36,7 +36,7 @@ function verdictColor(string $verdict): string
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Phishing Detection Tool</title>
+    <title>Phishing Detection</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -86,7 +86,7 @@ function verdictColor(string $verdict): string
 </head>
 <body>
 <div class="container">
-    <h1>🛡️ Phishing Detection Tool</h1>
+    <h1>⚠️ Phishing Website Detection</h1>
     <p class="desc">
         Checks a sample website against a known original to detect signs of phishing.
     </p>
