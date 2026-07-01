@@ -51,22 +51,72 @@ class PhishingDetector
     }
 
     /**
-     * Very simple lookalike-domain check: flags common homoglyph-style
-     * substitutions often used in phishing domains (e.g. rn -> m, i -> l).
+     * Lookalike-domain check: flags common homoglyph-style substitutions
+     * used in phishing domains (e.g. rn -> m, i -> l), AND catches
+     * substring-style typosquats where extra words are appended/prepended
+     * to a lookalike core (e.g. "wikipedla-secure.com" still contains a
+     * lookalike of "wikipedia").
      */
     public function isLookalikeDomain(string $originalDomain, string $suspectDomain): bool
     {
+        if ($originalDomain === 'unknown' || $suspectDomain === 'unknown') {
+            return false; // not enough data to judge — don't guess
+        }
+
+        if ($originalDomain === $suspectDomain) {
+            return false; // identical domain, not a lookalike, not a mismatch
+        }
+
         $normalize = function (string $domain): string {
             $domain = strtolower($domain);
             $domain = str_replace(['rn', '1', '0', 'i'], ['m', 'l', 'o', 'l'], $domain);
             return $domain;
         };
 
-        if ($originalDomain === $suspectDomain) {
-            return false; // identical domain, not a lookalike, not a mismatch
+        $normOriginal = $normalize($originalDomain);
+        $normSuspect  = $normalize($suspectDomain);
+
+        // Case A: exact match after substitution (e.g. wikipedia vs wikipedla)
+        if ($normOriginal === $normSuspect) {
+            return true;
         }
 
-        return $normalize($originalDomain) === $normalize($suspectDomain);
+        // Case B: the normalized original domain's core name appears as a
+        // substring inside the suspect domain, but the domains aren't
+        // identical — e.g. "wikipedla-secure.com" contains a lookalike of
+        // "wikipedia" plus extra text, or "wikipedia-login-verify.net".
+        $coreOriginal = $this->extractCoreName($normOriginal);
+        $coreSuspect  = $this->extractCoreName($normSuspect);
+
+        if ($coreOriginal !== '' && strlen($coreOriginal) >= 4) {
+            if (str_contains($normSuspect, $coreOriginal) || str_contains($coreSuspect, $coreOriginal)) {
+                return true;
+            }
+        }
+
+        // Case C: very close edit distance (catches subtle typos like a
+        // single swapped/dropped/added character) relative to domain length.
+        $distance = levenshtein($normOriginal, $normSuspect);
+        $maxLen   = max(strlen($normOriginal), strlen($normSuspect));
+        if ($maxLen > 0 && ($distance / $maxLen) <= 0.25) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /** Extract the main brand/name portion of a domain, e.g. "en.wikipedia.org" -> "wikipedia" */
+    private function extractCoreName(string $domain): string
+    {
+        $domain = preg_replace('/^https?:\/\//i', '', $domain);
+        $host   = explode('/', $domain)[0];
+        $parts  = explode('.', $host);
+
+        // Drop common subdomain (e.g. "en", "www") and TLD, keep the middle label.
+        if (count($parts) >= 2) {
+            return $parts[count($parts) - 2];
+        }
+        return $host;
     }
 
     /** Run the full analysis and return a structured report */
@@ -77,7 +127,7 @@ class PhishingDetector
         $formAction     = $this->extractFormAction($this->suspectHtml) ?? 'none';
 
         $similarity   = $this->calculateSimilarity();
-        $domainMatch  = ($originalDomain === $suspectDomain);
+        $domainMatch  = ($originalDomain === $suspectDomain) && $originalDomain !== 'unknown';
         $lookalike    = $this->isLookalikeDomain($originalDomain, $suspectDomain);
 
         $suspiciousFormAction = (

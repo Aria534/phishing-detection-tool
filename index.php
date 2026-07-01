@@ -108,11 +108,11 @@ function verdictColor(string $verdict): string
                 <tr><td>Suspicious form action:</td><td><?= $report['suspicious_form_action'] ? 'Yes ⚠️' : 'No' ?></td></tr>
                 <tr><td>Risk score:</td><td><?= $report['risk_score'] ?> / 100</td></tr>
             </table>
-        </table>
         </div>
         <p style="margin-top:15px;">
             <a href="index.php" style="color:#1b3a57;font-size:14px;text-decoration:none;">↻ Check Again</a>
         </p>
     <?php endif; ?>
+</div>
 </body>
 </html>
